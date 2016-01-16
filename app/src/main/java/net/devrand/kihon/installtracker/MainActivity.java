@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
     InstallPackageReceiver receiver;
     BufferedSink sink = null;
 
-    static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSZ";
+    static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
     static final String FILENAME = "/sdcard/installLog.txt";
 

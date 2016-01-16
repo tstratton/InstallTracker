@@ -3,11 +3,14 @@ package net.devrand.kihon.installtracker;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 
 import okio.BufferedSink;
 import okio.Okio;
@@ -23,12 +26,16 @@ public class InstallPackageReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         //printBundle(intent.getExtras());
 
-        final String action = intent.getAction();
+        SQLiteOpenHelper db = DatabaseHelper.getInstance(context);
+
+        String action = intent.getAction();
         final String dataString = intent.getDataString();
         String message = null;
+        boolean replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false);
         if (Intent.ACTION_PACKAGE_ADDED.equals(action)) {
+            action = replacing ? action : action + "_FIRST";
             message = String.format(" Package '%s' added (%s)\n", dataString,
-                    intent.getBooleanExtra(Intent.EXTRA_REPLACING, false) ? "replace" : "new");
+                    replacing ? "replace" : "new");
         } else if (Intent.ACTION_PACKAGE_RESTARTED.equals(action)) {
             message = String.format(" Package '%s' restarted\n", dataString);
         } else if (Intent.ACTION_PACKAGE_CHANGED.equals(action)) {
@@ -37,7 +44,7 @@ public class InstallPackageReceiver extends BroadcastReceiver {
             message = String.format(" Package '%s' replaced\n", dataString);
         } else if (Intent.ACTION_PACKAGE_REMOVED.equals(action)) {
             message = String.format(" Package '%s' removed (%s)\n", dataString,
-                    intent.getBooleanExtra(Intent.EXTRA_REPLACING, false) ? "replace" : "final");
+                    replacing ? "replace" : "final");
         } else if (Intent.ACTION_PACKAGE_FULLY_REMOVED.equals(action)) {
             message = String.format(" Package '%s' fully removed\n", dataString);
         } else if (Intent.ACTION_PACKAGE_NEEDS_VERIFICATION.equals(action)) {
@@ -48,6 +55,11 @@ public class InstallPackageReceiver extends BroadcastReceiver {
             // i don't think this gets called about other packages.
             message = String.format(" Package '%s' first launch\n", dataString);
         }
+        String[] args = {dataString, action, MainActivity.sdf.format(new Date(System.currentTimeMillis()))};
+        db.getWritableDatabase().execSQL("INSERT OR REPLACE INTO latest_update (package, type, timestamp) VALUES (?, ?, ?);", args);
+        db.getWritableDatabase().execSQL("INSERT OR REPLACE INTO package_updates (package, type, timestamp) VALUES (?, ?, ?);", args);
+        db.close();
+
         if (message == null) {
             return;
         }
