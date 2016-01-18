@@ -1,10 +1,14 @@
 package net.devrand.kihon.installtracker;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 import java.io.File;
@@ -25,9 +29,12 @@ public class MainActivity extends AppCompatActivity {
     @Bind(R.id.text) TextView text;
     @Bind(R.id.read_button) Button readButton;
     @Bind(R.id.write_button) Button writeButton;
+    @Bind(R.id.list) ListView listView;
 
     InstallPackageReceiver receiver;
     BufferedSink sink = null;
+
+    Cursor result;
 
     static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
@@ -87,6 +94,26 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        SQLiteOpenHelper db = DatabaseHelper.getInstance(this);
+        result = db
+                .getReadableDatabase()
+                .query(DatabaseHelper.RECENT_TABLE_NAME,
+                        new String[]{"ROWID AS _id",
+                                DatabaseHelper.PACKAGE_NAME,
+                                DatabaseHelper.TYPE,
+                                DatabaseHelper.TIMESTAMP},
+                        null, null, null, null, DatabaseHelper.TIMESTAMP + " DESC");
+        result.getCount();
+
+        SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.row_item,
+                result, new String[]{
+                DatabaseHelper.PACKAGE_NAME,
+                DatabaseHelper.TYPE,
+                DatabaseHelper.TIMESTAMP},
+                new int[]{R.id.package_name, R.id.event_name, R.id.timestamp},
+                0);
+        listView.setAdapter(adapter);
     }
 
     static String getLine(String string) {
@@ -96,5 +123,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onDestroy(){
         super.onDestroy();
+        result.close();
     }
 }
