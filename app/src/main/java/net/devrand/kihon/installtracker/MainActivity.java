@@ -1,15 +1,21 @@
 package net.devrand.kihon.installtracker;
 
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -106,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                         null, null, null, null, DatabaseHelper.TIMESTAMP + " DESC");
         result.getCount();
 
-        SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.row_item,
+        final SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.row_item,
                 result, new String[]{
                 DatabaseHelper.PACKAGE_NAME,
                 DatabaseHelper.TYPE,
@@ -114,6 +120,22 @@ public class MainActivity extends AppCompatActivity {
                 new int[]{R.id.package_name, R.id.event_name, R.id.timestamp},
                 0);
         listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                SQLiteCursor cursor = (SQLiteCursor)listView.getItemAtPosition(position);
+                String packageName = cursor.getString(1);
+                packageName = packageName.startsWith("package:") ? packageName.substring("package:".length()) : packageName;
+                PackageManager pm = MainActivity.this.getPackageManager();
+                try {
+                    PackageInfo info = pm.getPackageInfo(packageName, 0);
+                    Toast.makeText(view.getContext(), pm.getApplicationLabel(info.applicationInfo), Toast.LENGTH_SHORT).show();
+                } catch (PackageManager.NameNotFoundException ex) {
+                    ;
+                }
+
+            }
+        });
     }
 
     static String getLine(String string) {
