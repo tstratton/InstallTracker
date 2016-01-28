@@ -1,21 +1,14 @@
 package net.devrand.kihon.installtracker;
 
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteCursor;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
+import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,15 +25,16 @@ import okio.Okio;
 
 public class MainActivity extends AppCompatActivity {
 
-    @Bind(R.id.text) TextView text;
-    @Bind(R.id.read_button) Button readButton;
-    @Bind(R.id.write_button) Button writeButton;
-    @Bind(R.id.list) ListView listView;
+    @Bind(R.id.text)
+    TextView text;
+    @Bind(R.id.read_button)
+    Button readButton;
+    @Bind(R.id.write_button)
+    Button writeButton;
+    @Bind(R.id.event_list_fragment)
+    FrameLayout fragmentContainer;
 
-    InstallPackageReceiver receiver;
     BufferedSink sink = null;
-
-    Cursor result;
 
     static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
@@ -55,13 +49,17 @@ public class MainActivity extends AppCompatActivity {
 
         ButterKnife.bind(this);
 
+        Fragment fragment = new EventListFragment();
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.add(fragmentContainer.getId(), fragment).commit();
+
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         writeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 try {
-                    CharSequence prefix = text.getCurrentTextColor() == Color.RED ? "" : text.getText() ;
+                    CharSequence prefix = text.getCurrentTextColor() == Color.RED ? "" : text.getText();
                     text.setText(prefix + "Appended to the log\n");
                     text.setTextColor(Color.BLUE);
 
@@ -101,41 +99,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        SQLiteOpenHelper db = DatabaseHelper.getInstance(this);
-        result = db
-                .getReadableDatabase()
-                .query(DatabaseHelper.RECENT_TABLE_NAME,
-                        new String[]{"ROWID AS _id",
-                                DatabaseHelper.PACKAGE_NAME,
-                                DatabaseHelper.TYPE,
-                                DatabaseHelper.TIMESTAMP},
-                        null, null, null, null, DatabaseHelper.TIMESTAMP + " DESC");
-        result.getCount();
-
-        final SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.row_item,
-                result, new String[]{
-                DatabaseHelper.PACKAGE_NAME,
-                DatabaseHelper.TYPE,
-                DatabaseHelper.TIMESTAMP},
-                new int[]{R.id.package_name, R.id.event_name, R.id.timestamp},
-                0);
-        listView.setAdapter(adapter);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                SQLiteCursor cursor = (SQLiteCursor)listView.getItemAtPosition(position);
-                String packageName = cursor.getString(1);
-                packageName = packageName.startsWith("package:") ? packageName.substring("package:".length()) : packageName;
-                PackageManager pm = MainActivity.this.getPackageManager();
-                try {
-                    PackageInfo info = pm.getPackageInfo(packageName, 0);
-                    Toast.makeText(view.getContext(), pm.getApplicationLabel(info.applicationInfo), Toast.LENGTH_SHORT).show();
-                } catch (PackageManager.NameNotFoundException ex) {
-                    ;
-                }
-
-            }
-        });
     }
 
     static String getLine(String string) {
@@ -143,8 +106,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onDestroy(){
+    public void onDestroy() {
         super.onDestroy();
-        result.close();
     }
 }
