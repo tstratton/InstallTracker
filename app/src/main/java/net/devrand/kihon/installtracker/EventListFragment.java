@@ -15,8 +15,11 @@ import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Toast;
 
+import net.devrand.kihon.installtracker.event.ViewPackageEvent;
+
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import de.greenrobot.event.EventBus;
 
 /**
  * Created by tstratto on 1/7/2016.
@@ -62,15 +65,7 @@ public class EventListFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 SQLiteCursor cursor = (SQLiteCursor) listView.getItemAtPosition(position);
                 String packageName = cursor.getString(1);
-                packageName = packageName.startsWith("package:") ? packageName.substring("package:".length()) : packageName;
-                PackageManager pm = getActivity().getPackageManager();
-                try {
-                    PackageInfo info = pm.getPackageInfo(packageName, 0);
-                    Toast.makeText(view.getContext(), pm.getApplicationLabel(info.applicationInfo), Toast.LENGTH_SHORT).show();
-                } catch (PackageManager.NameNotFoundException ex) {
-                    ;
-                }
-
+                EventBus.getDefault().post(new ViewPackageEvent(packageName));
             }
         });
 

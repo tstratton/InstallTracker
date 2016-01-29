@@ -1,5 +1,7 @@
 package net.devrand.kihon.installtracker;
 
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -9,6 +11,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import net.devrand.kihon.installtracker.event.ViewPackageEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +24,7 @@ import java.util.TimeZone;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import de.greenrobot.event.EventBus;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
@@ -49,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
         ButterKnife.bind(this);
 
-        Fragment fragment = new PackageEventFragment("package:net.devrand.kihon.installtracker");
+        Fragment fragment = new EventListFragment();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.add(fragmentContainer.getId(), fragment).commit();
 
@@ -108,5 +114,29 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public void onStop() {
+        EventBus.getDefault().unregister(this);
+        super.onStop();
+    }
+
+    public void onEvent(ViewPackageEvent event) {
+        String packageName = event.packageName;
+        packageName = packageName.startsWith("package:") ? packageName.substring("package:".length()) : packageName;
+        PackageManager pm = getPackageManager();
+        try {
+            PackageInfo info = pm.getPackageInfo(packageName, 0);
+            Toast.makeText(this, pm.getApplicationLabel(info.applicationInfo), Toast.LENGTH_SHORT).show();
+        } catch (PackageManager.NameNotFoundException ex) {
+            ;
+        }
     }
 }
