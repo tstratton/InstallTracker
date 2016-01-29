@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
 
         ButterKnife.bind(this);
 
-        Fragment fragment = new EventListFragment();
+        Fragment fragment = new PackageEventFragment("package:net.devrand.kihon.installtracker");
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.add(fragmentContainer.getId(), fragment).commit();
 
