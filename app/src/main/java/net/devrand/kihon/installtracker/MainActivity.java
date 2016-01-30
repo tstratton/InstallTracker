@@ -130,13 +130,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void onEvent(ViewPackageEvent event) {
         String packageName = event.packageName;
-        packageName = packageName.startsWith("package:") ? packageName.substring("package:".length()) : packageName;
-        PackageManager pm = getPackageManager();
-        try {
-            PackageInfo info = pm.getPackageInfo(packageName, 0);
-            Toast.makeText(this, pm.getApplicationLabel(info.applicationInfo), Toast.LENGTH_SHORT).show();
-        } catch (PackageManager.NameNotFoundException ex) {
-            ;
-        }
+        Fragment fragment = new PackageEventFragment(packageName);
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(fragmentContainer.getId(), fragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
