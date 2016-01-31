@@ -19,7 +19,8 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:visibility="gone">
 
         <TextView
             android:id="@+id/text"
@@ -32,12 +33,14 @@
         android:id="@+id/read_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Read" />
+        android:text="Read"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/write_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Write" />
+        android:text="Write"
+        android:visibility="gone" />
 
 </LinearLayout>
