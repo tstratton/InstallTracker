@@ -7,15 +7,20 @@ import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import net.devrand.kihon.installtracker.event.ViewPackageEvent;
+
+import java.text.ParseException;
+import java.util.Date;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -59,6 +64,7 @@ public class EventListFragment extends Fragment {
                 DatabaseHelper.TIMESTAMP},
                 new int[]{R.id.package_name, R.id.event_name, R.id.timestamp},
                 0);
+        adapter.setViewBinder(new EventBinder());
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -91,4 +97,25 @@ public class EventListFragment extends Fragment {
         super.onStop();
     }
 
+    class EventBinder implements SimpleCursorAdapter.ViewBinder {
+
+        @Override
+        public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+            if (columnIndex == 3) {
+                String timestamp = cursor.getString(columnIndex);
+                //System.out.println("setViewValue " + columnIndex + " " + timestamp);
+                try {
+                    Date time = MainActivity.sdf.parse(timestamp);
+                    CharSequence timeString = DateUtils.getRelativeDateTimeString(view.getContext(), time.getTime(),
+                            DateUtils.MINUTE_IN_MILLIS, DateUtils.WEEK_IN_MILLIS, DateUtils.FORMAT_ABBREV_ALL);
+                    ((TextView)view).setText(timeString);
+                    return true;
+                } catch (ParseException ex) {
+
+                }
+
+            }
+            return false;
+        }
+    }
 }
