@@ -3,6 +3,7 @@ package net.devrand.kihon.installtracker;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -37,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     Button readButton;
     @Bind(R.id.write_button)
     Button writeButton;
+    @Bind(R.id.export_button)
+    Button exportButton;
     @Bind(R.id.event_list_fragment)
     FrameLayout fragmentContainer;
 
@@ -105,6 +108,40 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        exportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new ExportTask(exportButton).execute();
+            }
+        });
+    }
+
+    static class ExportTask extends AsyncTask<Void, Void, Boolean> {
+        Button exportButton;
+
+        ExportTask(Button button) {
+            exportButton = button;
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                ;
+            }
+            return true;
+        }
+
+        protected void onPreExecute() {
+            exportButton.setText("Exporting ...");
+            exportButton.setEnabled(false);
+        }
+
+        protected void onPostExecute(Boolean success) {
+            exportButton.setEnabled(true);
+            exportButton.setText("Export");
+        }
     }
 
     static String getLine(String string) {
