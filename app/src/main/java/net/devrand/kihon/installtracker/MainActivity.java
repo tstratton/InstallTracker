@@ -1,24 +1,30 @@
 package net.devrand.kihon.installtracker;
 
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+
 import net.devrand.kihon.installtracker.event.ViewPackageEvent;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -31,6 +37,7 @@ import okio.BufferedSource;
 import okio.Okio;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
 
     @Bind(R.id.text)
     TextView text;
@@ -116,21 +123,83 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    static final String jsonFileName = "/sdcard/installTracker-export.json";
+
     static class ExportTask extends AsyncTask<Void, Void, Boolean> {
         Button exportButton;
+        Context context;
 
         ExportTask(Button button) {
             exportButton = button;
+            context = button.getContext();
         }
 
         @Override
         protected Boolean doInBackground(Void... voids) {
+            boolean success = false;
+            long startTime = System.currentTimeMillis();
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                ;
+                BufferedSink sink = null;
+
+                ExportItem exportItem = new ExportItem();
+                Cursor result;
+
+                exportItem.info.timestamp = MainActivity.sdf.format(new Date());
+                exportItem.info.androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+                exportItem.info.device = android.os.Build.DEVICE;
+                exportItem.info.model = android.os.Build.MODEL;
+
+                SQLiteOpenHelper db = DatabaseHelper.getInstance(context);
+                result = db
+                        .getReadableDatabase()
+                        .query(DatabaseHelper.RECENT_TABLE_NAME,
+                                new String[]{"ROWID AS _id",
+                                        DatabaseHelper.PACKAGE_NAME,
+                                        DatabaseHelper.TYPE,
+                                        DatabaseHelper.TIMESTAMP},
+                                null, null, null, null, DatabaseHelper.TIMESTAMP + " DESC");
+                exportItem.newest = new ArrayList<>(result.getCount());
+
+                while (result.moveToNext()) {
+                    EventItem eventItem = new EventItem(result.getString(result.getColumnIndex(DatabaseHelper.PACKAGE_NAME)),
+                            result.getString(result.getColumnIndex(DatabaseHelper.TYPE)),
+                            result.getString(result.getColumnIndex(DatabaseHelper.TIMESTAMP)));
+                    exportItem.newest.add(eventItem);
+                }
+                result.close();
+
+                result = db
+                        .getReadableDatabase()
+                        .query(DatabaseHelper.TABLE_NAME,
+                                new String[]{"ROWID AS _id",
+                                        DatabaseHelper.PACKAGE_NAME,
+                                        DatabaseHelper.TYPE,
+                                        DatabaseHelper.TIMESTAMP},
+                                null, null, null, null, DatabaseHelper.TIMESTAMP + " DESC");
+                exportItem.events = new ArrayList<>(result.getCount());
+
+                while (result.moveToNext()) {
+                    EventItem eventItem = new EventItem(result.getString(result.getColumnIndex(DatabaseHelper.PACKAGE_NAME)),
+                            result.getString(result.getColumnIndex(DatabaseHelper.TYPE)),
+                            result.getString(result.getColumnIndex(DatabaseHelper.TIMESTAMP)));
+                    exportItem.events.add(eventItem);
+                }
+                result.close();
+
+                Gson gson = new Gson();
+                if (sink == null) {
+                    sink = Okio.buffer(Okio.sink(new File(jsonFileName)));
+                }
+                sink.writeUtf8(gson.toJson(exportItem));
+                sink.flush();
+                sink.close();
+                success = true;
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
-            return true;
+            long endTime = System.currentTimeMillis();
+            Log.d(TAG, "Export took " + (endTime - startTime) + " ms");
+            return success;
         }
 
         protected void onPreExecute() {
@@ -141,6 +210,9 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(Boolean success) {
             exportButton.setEnabled(true);
             exportButton.setText("Export");
+            if (success) {
+                Toast.makeText(exportButton.getContext(), "json file written", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
