@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">InstallTracker</string>
+	<string name="action_export">Export to JSON</string>
 </resources>
