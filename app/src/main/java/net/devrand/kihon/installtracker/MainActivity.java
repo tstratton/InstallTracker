@@ -25,6 +25,7 @@ import net.devrand.kihon.installtracker.event.ViewPackageEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.System;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -55,10 +56,12 @@ public class MainActivity extends AppCompatActivity {
     BufferedSink sink = null;
 
     static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
+    static final String DATE_FORMAT_TIMESTAMP = "yyyy-MM-dd_HHmm";
 
     static final String FILENAME = "/sdcard/installLog.txt";
 
     static SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.US);
+    static SimpleDateFormat sdfTimestamp = new SimpleDateFormat(DATE_FORMAT_TIMESTAMP, Locale.US);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
         transaction.add(fragmentContainer.getId(), fragment).commit();
 
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        sdfTimestamp.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         writeButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -146,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    static final String jsonFileName = "/sdcard/installTracker-export.json";
+    static final String jsonFileName = "/sdcard/installTracker-export-%s.json";
 
     static class ExportTask extends AsyncTask<Void, Void, Boolean> {
         Button exportButton;
@@ -210,8 +214,9 @@ public class MainActivity extends AppCompatActivity {
                 result.close();
 
                 Gson gson = new Gson();
+                String filename = String.format(jsonFileName, sdfTimestamp.format(System.currentTimeMillis()));
                 if (sink == null) {
-                    sink = Okio.buffer(Okio.sink(new File(jsonFileName)));
+                    sink = Okio.buffer(Okio.sink(new File(filename)));
                 }
                 sink.writeUtf8(gson.toJson(exportItem));
                 sink.flush();
